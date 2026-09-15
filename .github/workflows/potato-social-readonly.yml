@@ -1,0 +1,43 @@
+name: Potato Social Read-Only Gate
+
+on:
+  push:
+    paths:
+      - agent_reach/social_readonly.py
+      - agent_reach/social_guard_cli.py
+      - tests/test_social_readonly.py
+      - pyproject.toml
+      - .github/workflows/potato-social-readonly.yml
+  pull_request:
+    paths:
+      - agent_reach/social_readonly.py
+      - agent_reach/social_guard_cli.py
+      - tests/test_social_readonly.py
+      - pyproject.toml
+      - .github/workflows/potato-social-readonly.yml
+
+permissions:
+  contents: read
+
+jobs:
+  readonly-policy:
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.12"]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Syntax check
+        run: |
+          python -m py_compile agent_reach/social_readonly.py
+          python -m py_compile agent_reach/social_guard_cli.py
+
+      - name: Run read-only gate tests
+        run: python -m unittest discover -s tests -p 'test_social_readonly.py' -v
