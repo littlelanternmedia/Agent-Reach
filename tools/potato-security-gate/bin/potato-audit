@@ -1,0 +1,17 @@
+#!/usr/bin/env sh
+set -eu
+ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+TARGET=${1:-.}
+OUT=${POTATO_AUDIT_OUT:-"$PWD/potato-preflight.json"}
+set +e
+python3 "$ROOT/scripts/preflight.py" "$TARGET" --json-out "$OUT"
+RC=$?
+set -e
+case "$RC" in
+  0) echo "🥔🟢 preflight passed — Cloudflare stage is READY (pinned agent skill)." ;;
+  1) echo "🥔🟡 preflight needs review — Cloudflare STANDARD stage is READY; keep target isolated." ;;
+  2) echo "🥔🔴 preflight rejected target — Cloudflare execution stage BLOCKED; source-only investigation only." ;;
+  *) echo "🥔 preflight failed unexpectedly" >&2 ;;
+esac
+echo "report: $OUT"
+exit "$RC"
