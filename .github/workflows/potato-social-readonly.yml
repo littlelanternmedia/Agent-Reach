@@ -41,5 +41,8 @@ jobs:
           python -m py_compile agent_reach/social_readonly.py
           python -m py_compile agent_reach/social_guard_cli.py
 
+      - name: Install fork for wrapper integration test
+        run: python -m pip install -e .
+
       - name: Run read-only gate tests
         run: python -m unittest discover -s tests -p 'test_social*.py' -v
