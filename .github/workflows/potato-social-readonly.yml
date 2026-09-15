@@ -6,6 +6,7 @@ on:
       - agent_reach/social_readonly.py
       - agent_reach/social_guard_cli.py
       - tests/test_social_readonly.py
+      - tests/test_social_wrapper_integration.py
       - pyproject.toml
       - .github/workflows/potato-social-readonly.yml
   pull_request:
@@ -13,6 +14,7 @@ on:
       - agent_reach/social_readonly.py
       - agent_reach/social_guard_cli.py
       - tests/test_social_readonly.py
+      - tests/test_social_wrapper_integration.py
       - pyproject.toml
       - .github/workflows/potato-social-readonly.yml
 
@@ -40,4 +42,4 @@ jobs:
           python -m py_compile agent_reach/social_guard_cli.py
 
       - name: Run read-only gate tests
-        run: python -m unittest discover -s tests -p 'test_social_readonly.py' -v
+        run: python -m unittest discover -s tests -p 'test_social*.py' -v
