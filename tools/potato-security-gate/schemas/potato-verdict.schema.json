@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Potato Security Gate Verdict",
+  "type": "object",
+  "required": ["gate_version", "target", "preflight", "cloudflare_stage", "final_verdict"],
+  "properties": {
+    "gate_version": {"type": "string"},
+    "target": {"type": "string"},
+    "preflight": {
+      "type": "object",
+      "required": ["verdict", "score", "findings"],
+      "properties": {
+        "verdict": {"enum": ["green", "yellow", "red"]},
+        "score": {"type": "integer", "minimum": 0},
+        "findings": {"type": "array"}
+      }
+    },
+    "cloudflare_stage": {
+      "type": "object",
+      "required": ["status", "pin"],
+      "properties": {
+        "status": {"enum": ["not_started", "blocked_by_preflight", "ready", "in_progress", "complete", "incomplete"]},
+        "profile": {"enum": ["quick", "standard", "deep"]},
+        "pin": {"type": "string"}
+      }
+    },
+    "final_verdict": {"enum": ["green", "yellow", "red", "pending"]}
+  }
+}
