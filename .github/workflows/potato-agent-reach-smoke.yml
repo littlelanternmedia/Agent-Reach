@@ -43,9 +43,11 @@ jobs:
           agent-reach doctor --json | tee /tmp/doctor.json
           python - <<'PY'
           import json
-          p='/tmp/doctor.json'
-          data=json.load(open(p, encoding='utf-8'))
+          data=json.load(open('/tmp/doctor.json', encoding='utf-8'))
           print('DOCTOR-CHANNELS:', ', '.join(sorted(data)))
+          for key in ('web','rss','youtube','bilibili','v2ex'):
+              row=data.get(key,{})
+              print(f"DOCTOR-{key.upper()}: status={row.get('status')} backend={row.get('active_backend')}")
           print('DOCTOR: PASS')
           PY
 
@@ -53,23 +55,25 @@ jobs:
         id: jina
         continue-on-error: true
         run: |
-          curl -fsSL --max-time 30 "https://r.jina.ai/https://example.com" -o /tmp/jina.txt
-          grep -qi "Example Domain" /tmp/jina.txt
+          curl -sS -L --max-time 30 -w '%{http_code}\n' "https://r.jina.ai/https://github.com/Panniantong/Agent-Reach" -o /tmp/jina.txt | tee /tmp/jina.status
+          test "$(cat /tmp/jina.status)" = "200"
+          test -s /tmp/jina.txt
+          grep -qi "Agent Reach" /tmp/jina.txt
           echo "JINA-WEB: PASS"
-          head -n 12 /tmp/jina.txt
+          head -n 10 /tmp/jina.txt
 
       - name: Real GitHub search via gh
         id: github_search
         continue-on-error: true
         run: |
-          gh search repos "agent reach" --sort stars --limit 3 --json nameWithOwner,description,url > /tmp/gh.json
+          gh search repos "agent reach" --sort stars --limit 3 --json fullName,description,url > /tmp/gh.json
           python - <<'PY'
           import json
           rows=json.load(open('/tmp/gh.json', encoding='utf-8'))
           assert rows, 'GitHub search returned no repositories'
           print('GITHUB-SEARCH: PASS')
           for row in rows:
-              print('-', row['nameWithOwner'], row['url'])
+              print('-', row['fullName'], row['url'])
           PY
 
       - name: Real RSS fetch
@@ -83,6 +87,20 @@ jobs:
           print('RSS: PASS')
           for item in feed.entries[:3]:
               print('-', item.get('title','(untitled)'))
+          PY
+
+      - name: Real V2EX public API
+        id: v2ex
+        continue-on-error: true
+        run: |
+          curl -fsSL --max-time 30 "https://www.v2ex.com/api/topics/hot.json" -H "User-Agent: agent-reach/1.0" -o /tmp/v2ex.json
+          python - <<'PY'
+          import json
+          rows=json.load(open('/tmp/v2ex.json', encoding='utf-8'))
+          assert rows, 'V2EX returned no hot topics'
+          print('V2EX: PASS')
+          for row in rows[:3]:
+              print('-', row.get('title'))
           PY
 
       - name: Real YouTube search via yt-dlp
@@ -109,6 +127,7 @@ jobs:
           echo "- Jina web read: ${{ steps.jina.outcome }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- GitHub search: ${{ steps.github_search.outcome }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- RSS fetch: ${{ steps.rss.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- V2EX public API: ${{ steps.v2ex.outcome }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- YouTube search: ${{ steps.youtube.outcome }}" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "No social credentials, browser cookies, OAuth tokens, or user secrets were supplied." >> "$GITHUB_STEP_SUMMARY"
