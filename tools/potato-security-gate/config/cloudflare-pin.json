@@ -1,0 +1,9 @@
+{
+  "repository": "cloudflare/security-audit-skill",
+  "commit": "c1c8a8c1471069fb0e188eeaff69b8e8db6564a8",
+  "skill_path": "skills/security-audit",
+  "license": "MIT",
+  "mode": "pinned-upstream-agent-skill",
+  "updated": "2026-09-15",
+  "policy": "Never silently float to main. Review upstream diff, re-run Potato preflight, then update this pin explicitly."
+}
