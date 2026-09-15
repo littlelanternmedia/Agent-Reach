@@ -51,6 +51,7 @@ dev = [
 
 [project.scripts]
 agent-reach = "agent_reach.cli:main"
+potato-social-guard = "agent_reach.social_guard_cli:main"
 
 [project.urls]
 Homepage = "https://github.com/Panniantong/agent-reach"
