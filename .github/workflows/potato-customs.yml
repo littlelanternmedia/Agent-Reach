@@ -1,0 +1,96 @@
+name: Potato Customs
+
+on:
+  push:
+    paths:
+      - agent_reach/__init__.py
+      - agent_reach/cookie_extract.py
+      - pyproject.toml
+      - .github/workflows/potato-customs.yml
+  pull_request:
+    paths:
+      - agent_reach/__init__.py
+      - agent_reach/cookie_extract.py
+      - pyproject.toml
+
+permissions:
+  contents: read
+
+jobs:
+  credential-boundary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Syntax check hardening entry point
+        run: python -m py_compile agent_reach/__init__.py
+
+      - name: Prove browser-cookie readers fail closed
+        shell: python
+        run: |
+          import os
+          import runpy
+          import sys
+          import types
+          from pathlib import Path
+
+          os.environ.pop('AGENT_REACH_ALLOW_BROWSER_COOKIE_READ', None)
+
+          package = types.ModuleType('agent_reach')
+          package.__path__ = [str(Path('agent_reach').resolve())]
+          sys.modules['agent_reach'] = package
+          core = types.ModuleType('agent_reach.core')
+          core.AgentReach = object
+          sys.modules['agent_reach.core'] = core
+
+          runpy.run_path('agent_reach/__init__.py')
+
+          for module_name in ('rookiepy', 'browser_cookie3'):
+              module = sys.modules.get(module_name)
+              if module is None:
+                  raise SystemExit(f'{module_name} blocker was not installed')
+              for browser in ('chrome', 'firefox', 'edge', 'brave', 'opera'):
+                  try:
+                      getattr(module, browser)()
+                  except PermissionError as exc:
+                      if 'AGENT_REACH_ALLOW_BROWSER_COOKIE_READ=1' not in str(exc):
+                          raise SystemExit('Guard error must disclose the explicit opt-in boundary')
+                  else:
+                      raise SystemExit(f'{module_name}.{browser} was not blocked')
+
+          print('PASS: browser-cookie extraction is fail-closed by default')
+
+      - name: Prove explicit opt-in does not replace cookie libraries
+        shell: python
+        run: |
+          import os
+          import runpy
+          import sys
+          import types
+          from pathlib import Path
+
+          os.environ['AGENT_REACH_ALLOW_BROWSER_COOKIE_READ'] = '1'
+
+          package = types.ModuleType('agent_reach')
+          package.__path__ = [str(Path('agent_reach').resolve())]
+          sys.modules['agent_reach'] = package
+          core = types.ModuleType('agent_reach.core')
+          core.AgentReach = object
+          sys.modules['agent_reach.core'] = core
+
+          rookie = types.ModuleType('rookiepy')
+          cookie3 = types.ModuleType('browser_cookie3')
+          sentinel = object()
+          rookie.chrome = sentinel
+          cookie3.chrome = sentinel
+          sys.modules['rookiepy'] = rookie
+          sys.modules['browser_cookie3'] = cookie3
+
+          runpy.run_path('agent_reach/__init__.py')
+
+          if sys.modules['rookiepy'].chrome is not sentinel:
+              raise SystemExit('Explicit opt-in unexpectedly replaced rookiepy')
+          if sys.modules['browser_cookie3'].chrome is not sentinel:
+              raise SystemExit('Explicit opt-in unexpectedly replaced browser_cookie3')
+
+          print('PASS: explicit opt-in is required to expose real cookie-reader modules')
