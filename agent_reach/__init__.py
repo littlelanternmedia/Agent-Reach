@@ -29,8 +29,9 @@ def _install_cookie_reader_guard() -> None:
     """Fail closed if optional browser-cookie extraction libraries are requested.
 
     ``cookie_extract.py`` prefers rookiepy when present and otherwise falls back
-    to browser_cookie3. Supplying blocker modules here prevents either backend
-    from reading a normal browser profile unless the user explicitly opts in.
+    to browser_cookie3. Replacing either module here prevents import order from
+    bypassing the policy. The guard is installed only when the explicit opt-in
+    is absent.
     """
     if os.environ.get(_COOKIE_OPT_IN) == "1":
         return
@@ -38,12 +39,12 @@ def _install_cookie_reader_guard() -> None:
     rookiepy = types.ModuleType("rookiepy")
     for name in ("chrome", "firefox", "edge", "brave", "opera"):
         setattr(rookiepy, name, _cookie_read_blocked)
-    sys.modules.setdefault("rookiepy", rookiepy)
+    sys.modules["rookiepy"] = rookiepy
 
     browser_cookie3 = types.ModuleType("browser_cookie3")
     for name in ("chrome", "firefox", "edge", "brave", "opera"):
         setattr(browser_cookie3, name, _cookie_read_blocked)
-    sys.modules.setdefault("browser_cookie3", browser_cookie3)
+    sys.modules["browser_cookie3"] = browser_cookie3
 
 
 _install_cookie_reader_guard()
